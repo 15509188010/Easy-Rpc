@@ -41,13 +41,23 @@ class ComposerStaticInitc6b07599e53b01b4425be420b30554ad
             'EasySwoole\\RedisPool\\' => 21,
             'EasySwoole\\Pool\\Tests\\' => 22,
             'EasySwoole\\Pool\\' => 16,
+            'EasySwoole\\ParserDown\\' => 22,
             'EasySwoole\\Log\\' => 15,
             'EasySwoole\\Http\\' => 16,
+            'EasySwoole\\HttpAnnotation\\' => 26,
+            'EasySwoole\\HotReload\\' => 21,
             'EasySwoole\\EasySwoole\\' => 22,
+            'EasySwoole\\DoctrineAnnotation\\Tests\\' => 36,
+            'EasySwoole\\DoctrineAnnotation\\' => 30,
             'EasySwoole\\Config\\Test\\' => 23,
             'EasySwoole\\Config\\' => 18,
             'EasySwoole\\Component\\Tests\\' => 27,
             'EasySwoole\\Component\\' => 21,
+            'EasySwoole\\Annotation\\' => 22,
+        ),
+        'D' => 
+        array (
+            'Doctrine\\Common\\Lexer\\' => 22,
         ),
         'C' => 
         array (
@@ -132,6 +142,10 @@ class ComposerStaticInitc6b07599e53b01b4425be420b30554ad
         array (
             0 => __DIR__ . '/..' . '/easyswoole/pool/src',
         ),
+        'EasySwoole\\ParserDown\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/easyswoole/parsedown/src',
+        ),
         'EasySwoole\\Log\\' => 
         array (
             0 => __DIR__ . '/..' . '/easyswoole/log/src',
@@ -140,9 +154,25 @@ class ComposerStaticInitc6b07599e53b01b4425be420b30554ad
         array (
             0 => __DIR__ . '/..' . '/easyswoole/http/src',
         ),
+        'EasySwoole\\HttpAnnotation\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/easyswoole/http-annotation/src',
+        ),
+        'EasySwoole\\HotReload\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/easyswoole/hot-reload/src',
+        ),
         'EasySwoole\\EasySwoole\\' => 
         array (
             0 => __DIR__ . '/..' . '/easyswoole/easyswoole/src',
+        ),
+        'EasySwoole\\DoctrineAnnotation\\Tests\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/easyswoole/doctrine-annotations/tests',
+        ),
+        'EasySwoole\\DoctrineAnnotation\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/easyswoole/doctrine-annotations/src',
         ),
         'EasySwoole\\Config\\Test\\' => 
         array (
@@ -159,6 +189,14 @@ class ComposerStaticInitc6b07599e53b01b4425be420b30554ad
         'EasySwoole\\Component\\' => 
         array (
             0 => __DIR__ . '/..' . '/easyswoole/component/src',
+        ),
+        'EasySwoole\\Annotation\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/easyswoole/annotation/src',
+        ),
+        'Doctrine\\Common\\Lexer\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/doctrine/lexer/lib/Doctrine/Common/Lexer',
         ),
         'Cron\\' => 
         array (

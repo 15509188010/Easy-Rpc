@@ -11,6 +11,9 @@ use EasySwoole\Redis\Config\RedisConfig;
 use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Rpc\NodeManager\RedisManager;
 use EasySwoole\Rpc\Rpc;
+use EasySwoole\HotReload\HotReloadOptions;
+use EasySwoole\HotReload\HotReload;
+
 
 class EasySwooleEvent implements Event
 {
@@ -21,9 +24,22 @@ class EasySwooleEvent implements Event
         date_default_timezone_set('Asia/Shanghai');
     }
 
+    /**
+     * Doc: (des="")
+     * User: XMing
+     * Date: 2020/9/11
+     * Time: 5:52 下午
+     * @param EventRegister $register
+     */
     public static function mainServerCreate(EventRegister $register)
     {
         // TODO: Implement mainServerCreate() method.
+        // 配置同上别忘了添加要检视的目录
+        $hotReloadOptions = new HotReloadOptions;
+        $hotReload = new HotReload($hotReloadOptions);
+        $hotReloadOptions->setMonitorFolder([EASYSWOOLE_ROOT . '/App']);
+        $server = ServerManager::getInstance()->getSwooleServer();
+        $hotReload->attachToServer($server);
         /**
          * 定义节点Redis管理器
          */

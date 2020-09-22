@@ -190,30 +190,31 @@ abstract class AbstractPool
         * 懒惰模式，可以提前创建 pool对象，因此调用钱执行初始化检测
         */
         $this->init();
-        $list = [];
-        while (!$this->poolChannel->isEmpty()) {
+        $size = $this->poolChannel->length();
+        while (!$this->poolChannel->isEmpty() && $size >= 0) {
+            $size--;
             $item = $this->poolChannel->pop(0.01);
             if(!$item){
                 continue;
             }
-            if(!$this->itemIntervalCheck($item)){
-                //标记为不在队列内，允许进行gc回收
-                $hash = $item->__objHash;
-                $this->objHash[$hash] = false;
-                $this->unsetObj($item);
-                continue;
-            }
+            //回收超时没有使用的链接
             if (time() - $item->__lastUseTime > $idleTime) {
                 //标记为不在队列内，允许进行gc回收
                 $hash = $item->__objHash;
                 $this->objHash[$hash] = false;
                 $this->unsetObj($item);
             } else {
-                $list[] = $item;
+                //执行itemIntervalCheck检查
+                if(!$this->itemIntervalCheck($item)){
+                    //标记为不在队列内，允许进行gc回收
+                    $hash = $item->__objHash;
+                    $this->objHash[$hash] = false;
+                    $this->unsetObj($item);
+                    continue;
+                }else{
+                    $this->poolChannel->push($item);
+                }
             }
-        }
-        foreach ($list as $item) {
-            $this->poolChannel->push($item);
         }
     }
 
@@ -230,7 +231,7 @@ abstract class AbstractPool
      * @param $item  __lastUseTime 属性表示该对象被最后一次使用的时间
      * @return bool
      */
-    public function itemIntervalCheck($item):bool
+    protected function itemIntervalCheck($item):bool
     {
         return true;
     }
@@ -341,12 +342,14 @@ abstract class AbstractPool
             Timer::clear($this->timerId);
             $this->timerId = null;
         }
-        while (!$this->poolChannel->isEmpty()) {
-            $item = $this->poolChannel->pop(0.01);
-            $this->unsetObj($item);
+        if($this->poolChannel){
+            while (!$this->poolChannel->isEmpty()) {
+                $item = $this->poolChannel->pop(0.01);
+                $this->unsetObj($item);
+            }
+            $this->poolChannel->close();
+            $this->poolChannel = null;
         }
-        $this->poolChannel->close();
-        $this->poolChannel = null;
     }
 
     function reset(): AbstractPool

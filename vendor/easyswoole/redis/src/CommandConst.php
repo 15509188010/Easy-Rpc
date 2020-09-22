@@ -34,9 +34,7 @@ class CommandConst
     const GET = 'GET';//获取指定 key 的值。
     const GETRANGE = 'GETRANGE';//返回 key 中字符串值的子字符
     const GETSET = 'GETSET';//将给定 key 的值设为 value ，并返回 key 的旧值(old value)。
-    const GETBIT = 'GETBIT';//对 key 所储存的字符串值，获取指定偏移量上的位(bit)。
     const MGET = 'MGET';//获取所有(一个或多个)给定 key 的值。
-    const SETBIT = 'SETBIT';//对 key 所储存的字符串值，设置或清除指定偏移量上的位(bit)。
     const SETEX = 'SETEX';//将值 value 关联到 key ，并将 key 的过期时间设为 seconds (以秒为单位)。
     const SETNX = 'SETNX';//只有在 key 不存在时设置 key 的值。
     const SETRANGE = 'SETRANGE';//用 value 参数覆写给定 key 所储存的字符串值，从偏移量 offset 开始。
@@ -104,6 +102,13 @@ class CommandConst
     const SUNIONSTORE = 'SUNIONSTORE';//所有给定集合的并集存储在 destination 集合中
     const SSCAN = 'SSCAN';//迭代集合中的元素
 
+    const GETBIT = 'GETBIT';//对 key 所储存的字符串值，获取指定偏移量上的位(bit)。
+    const SETBIT = 'SETBIT';//对 key 所储存的字符串值，设置或清除指定偏移量上的位(bit)。
+    const BITCOUNT = 'BITCOUNT';//Count the number of set bits (population counting) in a string.
+    const BITPOS = 'BITPOS'; // Return the position of the first bit set to 1 or 0 in a string.
+    const BITOP = 'BITOP'; // Perform a bitwise operation between multiple keys (containing string values) and store the result in the destination key.
+    const BITFIELD = 'BITFIELD'; // The command treats a Redis string as a array of bits, and is capable of addressing specific integer fields of varying bit widths and arbitrary non (necessary) aligned offset.
+
 
     const ZADD = 'ZADD';//向有序集合添加一个或多个成员，或者更新已存在成员的分数
     const ZCARD = 'ZCARD';//获取有序集合的成员数
@@ -126,6 +131,20 @@ class CommandConst
     const ZUNIONSTORE = 'ZUNIONSTORE';//计算给定的一个或多个有序集的并集，并存储在新的 key 中
     const ZSCAN = 'ZSCAN';//迭代有序集合中的元素（包括元素成员和元素分值）
 
+
+    const XADD = 'XADD'; //向指定stream添加数据
+    const XLEN = 'XLEN'; //返回指定stream的item的个数
+    const XDEL = 'XDEL'; //删除指定steam的item
+    const XRANGE = 'XRANGE';//查询指定stream范围内的item
+    const XREVRANGE = 'XREVRANGE';//同上 不过是倒叙输出
+    const XREAD = 'XREAD';//监听指定stream
+    const XGROUP = 'XGROUP';//创建 管理 删除group
+    const XREADGROUP = 'XREADGROUP';//读取消息进行消费
+    const XACK = 'XACK'; //通知group成功处理消息
+    const XINFO = 'XINFO'; //获取stream或者group信息
+    const XCLAIM = 'XCLAIM'; //改变message的所属关系
+    const XPENDING = 'XPENDING';//查看组内的pending message信息
+    const XTRIM = 'XTRIM';//将流修剪为给定数量的项目
 
     const PFADD = 'PFADD';//添加指定元素到 HyperLogLog 中。
     const PFCOUNT = 'PFCOUNT';//返回给定 HyperLogLog 的基数估算值。

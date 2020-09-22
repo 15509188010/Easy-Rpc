@@ -73,7 +73,7 @@ class Request extends ServerRequest
             $host = $this->request->header['host'];
             $host = explode(":",$host);
             $realHost = $host[0];
-            $port = isset($host[1]) ? $host[1] : 80;
+            $port = isset($host[1]) ? $host[1] : null;
         }else{
             $realHost = '127.0.0.1';
             $port = $this->request->server['server_port'];
@@ -97,9 +97,12 @@ class Request extends ServerRequest
             $normalized = array();
             foreach($this->request->files as $key => $value){
                 //如果是二维数组文件
-                if(is_array($value) && !isset($value['tmp_name'])){
+                if(is_array($value) && empty($value['tmp_name'])){
                     $normalized[$key] = [];
                     foreach($value as $file){
+                        if (empty($file['tmp_name'])){
+                            continue;
+                        }
                         $file = $this->initFile($file);
                         if($file){
                             $normalized[$key][] = $file;
@@ -121,7 +124,7 @@ class Request extends ServerRequest
 
     private function initFile(array $file)
     {
-        if(!isset($file['tmp_name'])){
+        if(empty($file['tmp_name'])){
             return null;
         }
         return new UploadFile(

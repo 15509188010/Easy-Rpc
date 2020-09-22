@@ -8,11 +8,15 @@ use EasySwoole\Redis\CommandHandel\AppEnd;
 use EasySwoole\Redis\CommandHandel\Auth;
 use EasySwoole\Redis\CommandHandel\BgRewriteAof;
 use EasySwoole\Redis\CommandHandel\BgSave;
+use EasySwoole\Redis\CommandHandel\BitCount;
+use EasySwoole\Redis\CommandHandel\BitField;
+use EasySwoole\Redis\CommandHandel\BitOp;
+use EasySwoole\Redis\CommandHandel\BitPos;
 use EasySwoole\Redis\CommandHandel\BLPop;
 use EasySwoole\Redis\CommandHandel\BRPop;
 use EasySwoole\Redis\CommandHandel\BRPopLPush;
 use EasySwoole\Redis\CommandHandel\ClientGetName;
-use EasySwoole\Redis\CommandHandel\ClusterNodes;
+use EasySwoole\Redis\CommandHandel\ClientKill;
 use EasySwoole\Redis\CommandHandel\ClientList;
 use EasySwoole\Redis\CommandHandel\ClientPause;
 use EasySwoole\Redis\CommandHandel\ClientSetName;
@@ -66,6 +70,7 @@ use EasySwoole\Redis\CommandHandel\MSet;
 use EasySwoole\Redis\CommandHandel\MSetNx;
 use EasySwoole\Redis\CommandHandel\Multi;
 use EasySwoole\Redis\CommandHandel\Persist;
+use EasySwoole\Redis\CommandHandel\PExpire;
 use EasySwoole\Redis\CommandHandel\PfAdd;
 use EasySwoole\Redis\CommandHandel\PfCount;
 use EasySwoole\Redis\CommandHandel\PfMerge;
@@ -104,6 +109,19 @@ use EasySwoole\Redis\CommandHandel\SRandMember;
 use EasySwoole\Redis\CommandHandel\SRem;
 use EasySwoole\Redis\CommandHandel\SScan;
 use EasySwoole\Redis\CommandHandel\StartPipe;
+use EasySwoole\Redis\CommandHandel\XAck;
+use EasySwoole\Redis\CommandHandel\XAdd;
+use EasySwoole\Redis\CommandHandel\XClaim;
+use EasySwoole\Redis\CommandHandel\XDel;
+use EasySwoole\Redis\CommandHandel\XGroup;
+use EasySwoole\Redis\CommandHandel\XInfo;
+use EasySwoole\Redis\CommandHandel\XLen;
+use EasySwoole\Redis\CommandHandel\XPending;
+use EasySwoole\Redis\CommandHandel\XRange;
+use EasySwoole\Redis\CommandHandel\XRead;
+use EasySwoole\Redis\CommandHandel\XReadGroup;
+use EasySwoole\Redis\CommandHandel\XRevRange;
+use EasySwoole\Redis\CommandHandel\XTrim;
 use EasySwoole\Redis\CommandHandel\StrLen;
 use EasySwoole\Redis\CommandHandel\Subscribe;
 use EasySwoole\Redis\CommandHandel\SUnion;
@@ -212,7 +230,7 @@ class Redis
             $timeout = $this->config->getTimeout();
         }
         if ($this->client == null) {
-            $this->client = new Client($this->config->getHost(), $this->config->getPort());
+            $this->initClient();
         }
         $this->isConnected = $this->client->connect($timeout);
 
@@ -222,11 +240,20 @@ class Redis
                 throw new RedisException("auth to redis host {$this->config->getHost()}:{$this->config->getPort()} fail");
             }
         }
-        if ($this->isConnected&&$this->config->getDb()!==null){
+        if ($this->isConnected && $this->config->getDb() !== null) {
             $this->select($this->config->getDb());
         }
 
         return $this->isConnected;
+    }
+
+    function initClient()
+    {
+        if ($this->config->getUnixSocket() !== null) {
+            $this->client = new UnixSocketClient($this->config->getUnixSocket(),$this->config->getPackageMaxLength());
+        } else {
+            $this->client = new Client($this->config->getHost(), $this->config->getPort(),$this->config->getPackageMaxLength());
+        }
     }
 
     function disconnect()
@@ -388,6 +415,21 @@ class Redis
         return $handelClass->getData($recv);
     }
 
+    public function pExpire($key, $expireTime = 60000)
+    {
+        $handelClass = new PExpire($this);
+        $command = $handelClass->getCommand($key, $expireTime);
+
+        if (!$this->sendCommand($command)) {
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv === null) {
+            return false;
+        }
+        return $handelClass->getData($recv);
+    }
+    
     public function expireAt($key, $expireTime)
     {
         $handelClass = new ExpireAt($this);
@@ -545,9 +587,9 @@ class Redis
 
     /**
      * set
-     * @param     $key
-     * @param     $val
-     * @param int|string|array $timeout  $timeout [optional]
+     * @param                  $key
+     * @param                  $val
+     * @param int|string|array $timeout $timeout [optional]
      * $timeout = 10
      * $timeout = 'XX',timeout='NX'
      * ['NX','EX'=>10],['XX','PX'=>10]
@@ -556,7 +598,7 @@ class Redis
      * @author Tioncico
      * Time: 14:33
      */
-    public function set($key, $val, $timeout = 0):?bool
+    public function set($key, $val, $timeout = 0): ?bool
     {
         $handelClass = new Set($this);
         $command = $handelClass->getCommand($key, $val, $timeout);
@@ -616,40 +658,10 @@ class Redis
         return $handelClass->getData($recv);
     }
 
-    public function getBit($key, $offset)
-    {
-        $handelClass = new GetBit($this);
-        $command = $handelClass->getCommand($key, $offset);
-
-        if (!$this->sendCommand($command)) {
-            return false;
-        }
-        $recv = $this->recv();
-        if ($recv === null) {
-            return false;
-        }
-        return $handelClass->getData($recv);
-    }
-
     public function mGet($keys)
     {
         $handelClass = new MGet($this);
         $command = $handelClass->getCommand($keys);
-
-        if (!$this->sendCommand($command)) {
-            return false;
-        }
-        $recv = $this->recv();
-        if ($recv === null) {
-            return false;
-        }
-        return $handelClass->getData($recv);
-    }
-
-    public function setBit($key, $offset, $value)
-    {
-        $handelClass = new SetBit($this);
-        $command = $handelClass->getCommand($key, $offset, $value);
 
         if (!$this->sendCommand($command)) {
             return false;
@@ -856,7 +868,7 @@ class Redis
         return $handelClass->getData($recv);
     }
 
-    public function scan(&$cursor, $pattern=null, $count=null)
+    public function scan(&$cursor, $pattern = null, $count = null)
     {
         $handelClass = new Scan($this);
         $command = $handelClass->getCommand($cursor, $pattern, $count);
@@ -867,7 +879,7 @@ class Redis
         if ($recv === null) {
             return false;
         }
-        $data  = $handelClass->getData($recv);
+        $data = $handelClass->getData($recv);
         $cursor = $data[0];
 
         return $data[1];
@@ -1073,10 +1085,10 @@ class Redis
         return $handelClass->getData($recv);
     }
 
-    public function hScan($key,&$cursor, $pattern=null, $count=null)
+    public function hScan($key, &$cursor, $pattern = null, $count = null)
     {
         $handelClass = new HScan($this);
-        $command = $handelClass->getCommand($key,$cursor, $pattern, $count);
+        $command = $handelClass->getCommand($key, $cursor, $pattern, $count);
         if (!$this->sendCommand($command)) {
             return false;
         }
@@ -1084,16 +1096,16 @@ class Redis
         if ($recv === null) {
             return false;
         }
-        $data  = $handelClass->getData($recv);
+        $data = $handelClass->getData($recv);
         $cursor = $data[0];
         return $data[1];
-   }
+    }
 
     ######################hash操作方法######################
 
     ######################列表操作方法######################
 
-    public function bLPop( $keys, $timeout)
+    public function bLPop($keys, $timeout)
     {
         $handelClass = new BLPop($this);
         $command = $handelClass->getCommand($keys, $timeout);
@@ -1559,10 +1571,10 @@ class Redis
         return $handelClass->getData($recv);
     }
 
-    public function sScan($key,&$cursor, $pattern=null, $count=null)
+    public function sScan($key, &$cursor, $pattern = null, $count = null)
     {
         $handelClass = new SScan($this);
-        $command = $handelClass->getCommand($key,$cursor, $pattern, $count);
+        $command = $handelClass->getCommand($key, $cursor, $pattern, $count);
         if (!$this->sendCommand($command)) {
             return false;
         }
@@ -1570,7 +1582,7 @@ class Redis
         if ($recv === null) {
             return false;
         }
-        $data  = $handelClass->getData($recv);
+        $data = $handelClass->getData($recv);
         $cursor = $data[0];
         return $data[1];
     }
@@ -1877,10 +1889,10 @@ class Redis
         return $handelClass->getData($recv);
     }
 
-    public function zScan($key,&$cursor, $pattern=null, $count=null)
+    public function zScan($key, &$cursor, $pattern = null, $count = null)
     {
         $handelClass = new ZScan($this);
-        $command = $handelClass->getCommand($key,$cursor, $pattern, $count);
+        $command = $handelClass->getCommand($key, $cursor, $pattern, $count);
         if (!$this->sendCommand($command)) {
             return false;
         }
@@ -1888,11 +1900,309 @@ class Redis
         if ($recv === null) {
             return false;
         }
-        $data  = $handelClass->getData($recv);
+        $data = $handelClass->getData($recv);
         $cursor = $data[0];
         return $data[1];
     }
     ######################有序集合操作方法######################
+
+    ######################Stream操作方法######################
+
+    public function xAdd(string $key, string $id, array $messages, $maxLen = null, bool $isApproximate = false)
+    {
+        $handelClass = new XAdd($this);
+        $command = $handelClass->getCommand($key, $id, $messages, $maxLen, $isApproximate);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xLen(string $key)
+    {
+        $handelClass = new XLen($this);
+        $command = $handelClass->getCommand($key);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xDel(string $key, array $ids)
+    {
+        $handelClass = new XDel($this);
+        $command = $handelClass->getCommand($key, $ids);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xRange(string $key, string $start = '-', string $end = '+', $count = null)
+    {
+        $handelClass = new XRange($this);
+        $command = $handelClass->getCommand($key, $start, $end, $count);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xRevRange(string $key, string $end = '+', string $start = '-', $count = null)
+    {
+        $handelClass = new XRevRange($this);
+        $command = $handelClass->getCommand($key, $end, $start, $count);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xTrim(string $key, $maxLen = null, bool $isApproximate = false)
+    {
+        $handelClass = new XTrim($this);
+        $command = $handelClass->getCommand($key, $maxLen, $isApproximate);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xRead(array $streams, $count = null, $block = null)
+    {
+        $handelClass = new XRead($this);
+        $command = $handelClass->getCommand($streams, $count, $block);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv(-1);
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xReadGroup(string $group, string $consumer,array $streams, $count = null, $block = null)
+    {
+        $handelClass = new XReadGroup($this);
+        $command = $handelClass->getCommand($group, $consumer, $streams, $count, $block);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv(-1);
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xGroup(string $operation, string $key = '', string $group = '', string $msgId = '$', bool $mkStream = false)
+    {
+        $handelClass = new XGroup($this);
+        $command = $handelClass->getCommand($operation, $key, $group, $msgId, $mkStream);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xInfo(string $operation, string $key = '', string $group = '')
+    {
+        $handelClass = new XInfo($this);
+        $command = $handelClass->getCommand($operation, $key, $group);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xPending(string $stream, string $group, string $start = null, string $end = null, $count = null, $consumer = null)
+    {
+        $handelClass = new XPending($this);
+        $command = $handelClass->getCommand($stream, $group, $start, $end, $count, $consumer);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xAck(string $key, string $group, array $ids = [])
+    {
+        $handelClass = new XAck($this);
+        $command = $handelClass->getCommand($key, $group, $ids);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    public function xClaim(string $key, string $group, string $consumer, int $minIdleTime, array $ids, array $options = [])
+    {
+        $handelClass = new XClaim($this);
+        $command = $handelClass->getCommand($key, $group, $consumer, $minIdleTime, $ids, $options);
+        if (!$this->sendCommand($command)){
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv == null) {
+            return false;
+        }
+        $data = $handelClass->getData($recv);
+        return $data;
+    }
+
+    ######################Stream操作方法######################
+
+
+    ######################Bitmap操作方法######################
+
+    public function setBit($key, $offset, $value)
+    {
+        $handelClass = new SetBit($this);
+        $command = $handelClass->getCommand($key, $offset, $value);
+
+        if (!$this->sendCommand($command)) {
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv === null) {
+            return false;
+        }
+        return $handelClass->getData($recv);
+    }
+
+    public function getBit($key, $offset)
+    {
+        $handelClass = new GetBit($this);
+        $command = $handelClass->getCommand($key, $offset);
+
+        if (!$this->sendCommand($command)) {
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv === null) {
+            return false;
+        }
+        return $handelClass->getData($recv);
+    }
+
+    public function bitCount(string $key, ?int $start = null, ?int $end = null)
+    {
+        $handelClass = new BitCount($this);
+        $command = $handelClass->getCommand($key, $start, $end);
+
+        if (!$this->sendCommand($command)) {
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv === null) {
+            return false;
+        }
+        return $handelClass->getData($recv);
+    }
+
+    public function bitPos(string $key, int $bit, ?int $start = null, ?int $end = null)
+    {
+        $handelClass = new BitPos($this);
+        $command = $handelClass->getCommand($key, $bit, $start, $end);
+
+        if (!$this->sendCommand($command)) {
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv === null) {
+            return false;
+        }
+        return $handelClass->getData($recv);
+    }
+
+    public function bitOp(string $operation, string $destKey, string $key1, ...$otherKeys)
+    {
+        $handelClass = new BitOp($this);
+        $command = $handelClass->getCommand($operation, $destKey, $key1, $otherKeys);
+
+        if (!$this->sendCommand($command)) {
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv === null) {
+            return false;
+        }
+        return $handelClass->getData($recv);
+    }
+
+    public function bitField(string $key, array $subcommands = [], ?string $overflow = null, array $subcommandArgs = [])
+    {
+        $handelClass = new BitField($this);
+        $command = $handelClass->getCommand($key, $subcommands, $overflow, $subcommandArgs);
+
+        if (!$this->sendCommand($command)) {
+            return false;
+        }
+        $recv = $this->recv();
+        if ($recv === null) {
+            return false;
+        }
+        return $handelClass->getData($recv);
+    }
+
+    ######################Bitmap操作方法######################
+
+    ######################Stream操作方法######################
+
+
 
     ######################HyperLogLog操作方法######################
 
@@ -2173,7 +2483,7 @@ class Redis
     public function startPipe(): bool
     {
         //由于执行管道之后,connect方法也会被拦截,导致没有client执行数据,所以这边先连接一次
-        if ($this->connect()===false){
+        if ($this->connect() === false) {
             throw new RedisException("redis connect error");
         }
         $handelClass = new StartPipe($this);
@@ -2326,7 +2636,7 @@ class Redis
 
     public function clientKill($data): bool
     {
-        $handelClass = new ClusterNodes($this);
+        $handelClass = new ClientKill($this);
         $command = $handelClass->getCommand($data);
 
         if (!$this->sendCommand($command)) {
@@ -2749,7 +3059,7 @@ class Redis
     /**
      * geoAdd
      * @param $key
-     * @param $locationData[[longitude=>'',latitude=>'',name=>''],[longitude=>'',latitude=>'',name=>'']] or $locationData[[longitude,latitude,name],[longitude,latitude,name],]
+     * @param $locationData [[longitude=>'',latitude=>'',name=>''],[longitude=>'',latitude=>'',name=>'']] or $locationData[[longitude,latitude,name],[longitude,latitude,name],]
      * @return bool|string
      * @throws RedisException
      * @author Tioncico
@@ -2758,7 +3068,7 @@ class Redis
     public function geoAdd($key, $locationData)
     {
         $handelClass = new GeoAdd($this);
-        $command = $handelClass->getCommand($key,$locationData);
+        $command = $handelClass->getCommand($key, $locationData);
 
         if (!$this->sendCommand($command)) {
             return false;
@@ -2886,16 +3196,19 @@ class Redis
             $this->setErrorType($recv->getErrorType());
             $this->setErrorMsg($recv->getMsg());
             throw new RedisException($recv->getMsg());
-
         } elseif ($recv->getStatus() == $recv::STATUS_OK) {
             return $recv;
         } elseif ($recv->getStatus() == $recv::STATUS_TIMEOUT) {
+            $this->setErrorType($recv->getErrorType());
+            $this->setErrorMsg($recv->getMsg());
             $this->disconnect();
+            throw new RedisException($recv->getMsg());
         }
         return null;
     }
 
-    public function rawCommand(array $command){
+    public function rawCommand(array $command)
+    {
         if (!$this->sendCommand($command)) {
             return false;
         }

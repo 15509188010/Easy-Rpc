@@ -12,11 +12,13 @@ class Client
     protected $client;
     protected $host;
     protected $port;
+    protected $packageMaxLength;
 
-    function __construct(string $host, int $port)
+    function __construct(string $host, int $port,$packageMaxLength=1024*1024*2)
     {
         $this->host = $host;
         $this->port = $port;
+        $this->packageMaxLength = $packageMaxLength;
     }
 
     public function connect(float $timeout = 3.0): bool
@@ -24,8 +26,9 @@ class Client
         if ($this->client == null) {
             $this->client = new \Swoole\Coroutine\Client(SWOOLE_TCP);
             $this->client->set([
-                'open_eof_check' => true,
-                'package_eof'    => "\r\n",
+                'open_eof_check'     => true,
+                'package_eof'        => "\r\n",
+                'package_max_length' =>  $this->packageMaxLength
             ]);
         }
 
@@ -197,9 +200,15 @@ class Client
             $response->setData(null);
         } else {
             $eolLen = strlen("\r\n");
-            while ($len < $strLen+$eolLen) {
+            while ($len < $strLen + $eolLen) {
                 $strTmp = $this->client->recv($timeout);
                 $len += strlen($strTmp);
+                //超时
+                if ($len < $strLen + $eolLen && empty($strTmp)) {
+                    $response->setStatus($response::STATUS_TIMEOUT);
+                    $response->setMsg($this->client->errMsg);
+                    return $response;
+                }
                 $buff .= $strTmp;
             }
             $response->setData(substr($buff, 0, -2));
@@ -231,12 +240,17 @@ class Client
             $arr = [];
             while ($len--) {
                 $str = $this->client->recv($timeout);
+                if (empty($str)) {
+                    $result->setStatus($result::STATUS_TIMEOUT);
+                    $result->setMsg($this->client->errMsg);
+                    return $result;
+                }
                 $str = substr($str, 0, -2);
                 $op = substr($str, 0, 1);
                 $response = $this->opHandel($op, $str, $timeout);
-                if ($response->getStatus()!=$response::STATUS_OK){
+                if ($response->getStatus() != $response::STATUS_OK) {
                     $arr[] = false;
-                }else{
+                } else {
                     $arr[] = $response->getData();
                 }
             }
