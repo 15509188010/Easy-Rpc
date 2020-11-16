@@ -18,6 +18,20 @@ return [
             'timeout'=>15
         ]
     ],
+    /*################ REDIS CONFIG ##################*/
+    'REDIS' => [
+        'host'          => '192.168.199.153',
+        'port'          => '6379',
+        'auth'          => '',
+        'serialize' => \EasySwoole\Redis\Config\RedisConfig::SERIALIZE_NONE
+    ],
+    'MYSQL' => [
+        'host'          => '192.168.199.153',
+        'port'          => '3306',
+        'username'      => 'root',
+        'database'      => 'mall',
+        'password'      => 'root'
+    ],
     'TEMP_DIR' => '/data/www/Log',
     'LOG_DIR' => '/data/www/Log'
 ];

@@ -1,12 +1,33 @@
 <?php
 namespace App\HttpController;
 
+use App\Services\EwsUserService;
 use EasySwoole\Http\AbstractInterface\Controller;
-use EasySwoole\EasySwoole\Logger;
-
+use EasySwoole\Pool\Manager;
+use EasySwoole\Redis\Redis;
 
 class Index extends Controller
 {
+    /**
+     * @var Redis
+     */
+    private $objRedis;
+
+    /**
+     * @var EwsUserService
+     */
+    private $objEwsUserService;
+
+    /**
+     * Index constructor.
+     * @throws \Throwable
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->objRedis = Manager::getInstance()->get('redis')->getObj();
+        $this->objEwsUserService = new EwsUserService();
+    }
 
     public function index()
     {
@@ -28,18 +49,14 @@ class Index extends Controller
     }
 
     /**
-     * Doc: (des="投递任务")
+     * Doc: (des="")
      * User: XMing
-     * Date: 2020/9/22
-     * Time: 10:06 上午
+     * Date: 2020/9/28
+     * Time: 10:30 上午
      */
-    public function task()
+    public function show()
     {
-        $params = parent::json();
-        if(empty($params)) parent::writeJson(ResponseCode::$noParams,[],'参数为空');
-        Logger::getInstance()->console(json_encode($params));
-
-
-
+        print_r($this->objEwsUserService->getUserByUserName('15509188010'));
     }
+
 }

@@ -24,5 +24,6 @@ class Router extends AbstractRouter
     function initialize(RouteCollector $routeCollector)
     {
         // TODO: Implement initialize() method.
+        $routeCollector->post('/api/user/login','/UserController/login');
     }
 }
